@@ -1,0 +1,56 @@
+package handler
+
+import (
+	"errors"
+	"net/http"
+	"strconv"
+
+	"github.com/gin-gonic/gin"
+
+	"tuwangapp/backend/internal/repository"
+)
+
+// GET /api/v1/transactions?from=YYYY-MM-DD&to=YYYY-MM-DD&period=month&limit=10&offset=0
+// Kalau from/to diisi, pakai rentang bebas. Kalau kosong tapi period
+// diisi, ikut preset ringkasan (today/yesterday/week/month/year).
+func GetTransactionsHandler(c *gin.Context) {
+	userID := c.GetString("user_id")
+
+	limit, _ := strconv.Atoi(c.DefaultQuery("limit", "10"))
+	offset, _ := strconv.Atoi(c.DefaultQuery("offset", "0"))
+
+	rows, err := repository.GetTransactions(userID, repository.ListFilter{
+		From:   c.Query("from"),
+		To:     c.Query("to"),
+		Period: c.Query("period"),
+		Limit:  limit,
+		Offset: offset,
+	})
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"data": rows})
+}
+
+// DELETE /api/v1/transactions/:id
+func DeleteTransactionHandler(c *gin.Context) {
+	userID := c.GetString("user_id")
+	id := c.Param("id")
+	if id == "" {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "id wajib diisi"})
+		return
+	}
+
+	if err := repository.DeleteTransaction(userID, id); err != nil {
+		if errors.Is(err, repository.ErrNotFound) {
+			c.JSON(http.StatusNotFound, gin.H{"error": "transaksi tidak ditemukan"})
+			return
+		}
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"message": "transaksi dihapus"})
+}
