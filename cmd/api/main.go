@@ -47,7 +47,7 @@ func main() {
 	router := gin.Default()
 
 	router.Use(cors.New(cors.Config{
-		AllowOrigins: []string{"http://localhost:5173"},
+		AllowOrigins: []string{"https://frontend-tuwangga.vercel.app"},
 		AllowMethods: []string{"GET", "POST", "DELETE"},
 		AllowHeaders: []string{"Content-Type", "Authorization"},
 	}))
